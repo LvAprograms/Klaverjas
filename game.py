@@ -1,3 +1,6 @@
+# Almost all aspects of the game have been programmed now. Now I want to improve the computer players' algorithm,
+# as it's of course a bit simple now
+
 import random as rnd
 import logging
 
@@ -64,9 +67,12 @@ class Team(object):
 
     def sum_scores_and_reset(self, team2):
         self.subtotal.append(sum(self.score) + sum(self.roem))
-        print(self.subtotal)
+        team2.subtotal.append(sum(team2.score) + sum(team2.roem))
+        print(self.subtotal, team2.subtotal)
         self.score = []
+        team2.score = []
         self.roem = []
+        team2.score = []
 
     def __repr__(self):
         return str(self.team)
@@ -238,13 +244,17 @@ class Game(object):
 
             for i in range(8):
                 self.play_slag()
-            self.check_nat(troef_id)
+
+                # the final slag yields 10 extra points
+                if i == 7:
+                    for team in self.teams:
+                        if team.score[-1] != 0: #FIXME: what if the final slag is worth only 0 points?
+                            team.score[-1] += 10
             self.teams[0].sum_scores_and_reset(self.teams[1])
-            print('Team {} heeft {} punten, team {} {}.'.format(self.teams[0], self.subtotal[-1], team2.team,
-                                                                team2.subtotal[-1]))
-
+            self.check_nat(troef_id)
+            print('Team {} heeft {} punten, team {} {}.'.format(self.teams[0].team, self.teams[0].subtotal[-1], self.teams[1].team,
+                                                                self.teams[1].subtotal[-1]))
             troef_id = (troef_id + 1) % 4
-
 
     def check_score(self):
         total_value = 0
@@ -263,7 +273,7 @@ class Game(object):
                         winnercard = self.stack[i]
                         logging.debug('winner card is {}'.format(winnercard))
                 else:
-                    winner = self.players[self.order[i]]  # TODO: dit moet anders, zo wordt een winnaar overschreven
+                    winner = self.players[self.order[i]]
                     winnercard = self.stack[i]
             else:
                 logging.debug('if statement false:')
@@ -285,13 +295,12 @@ class Game(object):
         before asserting if the picking team has fulfilled its target."""
         total_score = 0
         for team in self.teams:
-            total_score += sum(team.score[-1])  #
-            total_score += sum(team.roem[-1])
+            total_score += team.subtotal[-1]  #
         logging.debug('Total score this round is {}'.format(total_score))
 
         for i in range(len(self.teams)):
             if self.players[id] in self.teams[i].team:
-                if self.teams[i].subtotal < total_score:
+                if self.teams[i].subtotal[-1] <= 0.5 * total_score:
                     print('Oh oh! Team {} is nat! De punten van deze ronde gaan naar het andere team...'.format(self.teams[i]))
                     self.teams[i].subtotal[-1] = 0 #FIXME: niet de laatste score, maar die van alle 8 slagen gaat naar de ander
                     self.teams[(i+1) % 2].subtotal[-1] = total_score
@@ -308,12 +317,15 @@ class Game(object):
                 if i in sign_dict[sym] and i+1 in sign_dict[sym] and i+2 in sign_dict[sym]:
                     if i+3 < 8 and i+3 in sign_dict[sym]:
                         roem += 30  # normally it's 50, but this is a loophole to get 50, bc the else always triggers.
+                        logging.debug('vierkaart gevonden: {}'.format(sign_dict[sym]))
                     else:
                         roem += 20
+                        logging.debug('driekaart encountered: {}'.format(sign_dict[sym]))
             # koningspaar
             if sym == self.troef:
                 if 5 in sign_dict[sym] and 6 in sign_dict[sym]:
                     roem += 20
+                    logging.debug('koningspaar encountered: {}'.format(sign_dict[sym]))
         return roem
 
     def forge_state(self, stack):

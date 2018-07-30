@@ -1,5 +1,5 @@
-# Almost all aspects of the game have been programmed now. Now I want to improve the computer players' algorithm,
-# as it's of course a bit simple now
+# Updated version now checks card input for basic typos (the handle_typo(askstring) function)
+# check_value function is probably unneccessary so it's commented out
 
 import random as rnd
 import logging
@@ -21,20 +21,20 @@ class Card(object):
         self.value = value
         self.order = order
 
-    def check_value(self, number='0'):
-        if self.number in ['7', '8', '9']:
-            self.value = 0
-        elif self.number == '10':
-            self.value = 10
-        elif self.number == 'boer':
-            self.value = 2
-        elif self.number == 'vrouw':
-            self.value = 3
-        elif self.number == 'heer':
-            self.value = 4
-        elif self.number == 'aas':
-            self.value = 11
-        return self.value
+    # def check_value(self, number='0'):
+    #     if self.number in ['7', '8', '9']:
+    #         self.value = 0
+    #     elif self.number == '10':
+    #         self.value = 10
+    #     elif self.number == 'boer':
+    #         self.value = 2
+    #     elif self.number == 'vrouw':
+    #         self.value = 3
+    #     elif self.number == 'heer':
+    #         self.value = 4
+    #     elif self.number == 'aas':
+    #         self.value = 11
+    #     return self.value
 
     def troef_update(self, troef):
         if self.symbol == troef:
@@ -42,7 +42,6 @@ class Card(object):
                 self.value = 14
             elif self.number == 'boer':
                 self.value = 20
-
 
     def __repr__(self):
         return '{} {}'.format(self.symbol, self.number)
@@ -103,6 +102,7 @@ class Player(object):
     def human_play(self):
         print('Je hebt deze kaarten: {}'.format(self.hand))
         ask = input('Kies welke kaart je op wilt leggen: \n').split()
+        ask = self.handle_typo(ask)
         for card in self.hand:
             if card.symbol == ask[0] and str(card.number) == ask[1]:
                 print('val ', card.value)
@@ -124,6 +124,25 @@ class Player(object):
         except AttributeError as e:
             print('Die kaart heb je niet!')
             return self.human_play()
+
+    def handle_typo(self, askstring):
+        try:
+            num = int(askstring[1])
+            if num > 10:
+                print('oeps, typfout?')
+                return self.human_play()
+        except ValueError as e:
+            logging.debug(e)
+            if askstring[1].startswith('b'):
+                askstring[1] = 'boer'
+            elif askstring[1].startswith('v'):
+                askstring[1] = 'vrouw'
+            elif askstring[1].startswith('h'):
+                askstring[1] = 'heer'
+            elif askstring[1].startswith('a'):
+                askstring[1] = 'aas'
+            return askstring
+        return askstring
 
     def get_cards(self, gam, n):
         [self.hand.append(card) for card in gam.deck[0:n]]
@@ -147,7 +166,7 @@ class Player(object):
         logging.debug('Player {} updated hand: {}'.format(self.name, [card.value for card in self.hand]))
 
     def sort_hand(self):
-        self.hand.sort(key=lambda card: card.symbol)
+        self.hand.sort(key=lambda card: (card.symbol, card.order))
 
     def __repr__(self):
         return '{}'.format(self.name)
@@ -276,7 +295,8 @@ class Game(object):
                     winner = self.players[self.order[i]]
                     winnercard = self.stack[i]
             else:
-                logging.debug('if statement false:')
+                # logging.debug('if statement false:')
+                pass
             total_value += self.stack[i].value
         print('the winner card is {}'.format(winnercard))
         roem = self.check_roem()
@@ -335,6 +355,7 @@ class Game(object):
         self.make_deck(test=True)
         self.stack = stack
         assert self.check_score()
+
 
 
 if __name__ == '__main__':
